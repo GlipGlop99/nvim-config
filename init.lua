@@ -493,6 +493,7 @@ do
     },
     formatters_by_ft = {
       lua = { 'stylua' },
+      kotlin = { 'ktlint' },
     },
   }
 
