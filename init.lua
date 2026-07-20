@@ -207,7 +207,6 @@ do
     },
   }
 
-  -- Load the colorscheme based on tmux theme
   local function get_catppuccin_flavor()
     if os.getenv 'TMUX' then
       local out = vim.fn.system 'tmux show -gqv @catppuccin_flavor'

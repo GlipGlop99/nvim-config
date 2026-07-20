@@ -1,33 +1,5 @@
 vim.pack.add { 'https://github.com/lewis6991/gitsigns.nvim' }
 
--- Color the sign background so +/~/_ stand out more in the gutter
--- Derives bg from the colorscheme's existing sign foreground colors
-local function get_sign_hl(hl_name)
-  local hl = vim.api.nvim_get_hl(0, { name = hl_name, link = false })
-  if hl.fg then
-    -- Blend the foreground color with black at ~20% to create a subtle dark background
-    local r = math.floor(math.floor(hl.fg / 65536) * 0.2)
-    local g = math.floor((math.floor(hl.fg / 256) % 256) * 0.2)
-    local b = math.floor((hl.fg % 256) * 0.2)
-    local bg = r * 65536 + g * 256 + b
-    vim.api.nvim_set_hl(0, hl_name, { fg = hl.fg, bg = bg })
-  end
-end
-
-local function apply_sign_highlights()
-  get_sign_hl 'GitSignsAdd'
-  get_sign_hl 'GitSignsChange'
-  get_sign_hl 'GitSignsDelete'
-  get_sign_hl 'GitSignsTopdelete'
-  get_sign_hl 'GitSignsChangedelete'
-end
-
-apply_sign_highlights()
-
-vim.api.nvim_create_autocmd('ColorScheme', {
-  callback = apply_sign_highlights,
-})
-
 require('gitsigns').setup {
   signs = {
     add = { text = '+' }, ---@diagnostic disable-line: missing-fields
