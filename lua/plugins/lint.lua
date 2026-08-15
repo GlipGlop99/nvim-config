@@ -3,7 +3,13 @@ vim.pack.add { 'https://github.com/mfussenegger/nvim-lint' }
 local lint = require 'lint'
 lint.linters_by_ft = {
   markdown = { 'markdownlint-cli2' },
-  kotlin = { 'ktlint' }
+  kotlin = { 'ktlint' },
+}
+
+lint.linters.ktlint.args = {
+  '--reporter=json',
+  '--editorconfig=' .. vim.fn.expand '~/.config/ktlint/.editorconfig',
+  '$FILENAME',
 }
 
 local lint_augroup = vim.api.nvim_create_augroup('lint', { clear = true })

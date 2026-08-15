@@ -72,7 +72,10 @@ do
   vim.diagnostic.config {
     update_in_insert = false,
     severity_sort = true,
-    float = { border = 'rounded', source = 'if_many' },
+    float = {
+      border = 'rounded',
+      source = true,
+    },
     underline = { severity = { min = vim.diagnostic.severity.WARN } },
 
     virtual_text = false,
@@ -494,6 +497,13 @@ do
       lua = { 'stylua' },
       kotlin = { 'ktlint' },
     },
+    formatters = {
+      ktlint = {
+        extra_args = {
+          "--editorconfig=" .. vim.fn.expand("~/.config/ktlint/.editorconfig"),
+        },
+      },
+    },
   }
 
   vim.keymap.set({ 'n', 'v' }, '<leader>f', function() require('conform').format { async = true } end, { desc = '[F]ormat buffer' })
@@ -600,4 +610,3 @@ do
   require 'plugins.autopairs'
   require 'plugins.gitsigns'
 end
-
