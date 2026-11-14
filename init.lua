@@ -171,7 +171,6 @@ do
   MiniIcons.mock_nvim_web_devicons()
 
   require('mini.ai').setup {
-    -- NOTE: Avoid conflicts with the built-in incremental selection mappings on Neovim>=0.12 (see `:help treesitter-incremental-selection`)
     mappings = {
       around_next = 'aa',
       inside_next = 'ii',
@@ -194,9 +193,11 @@ do
   for key, info in pairs(MiniPairs.config.mappings) do
     if info and info.action ~= 'close' then
       vim.keymap.set('i', key, function()
-        local next_char = vim.api.nvim_get_current_line():sub(vim.fn.col '.', vim.fn.col '.')
-        if next_char ~= key and in_string() then return key end
-        return MiniPairs[info.action](info.pair, info.neigh_pattern)
+        local line, col = vim.api.nvim_get_current_line(), vim.fn.col '.'
+        local prev_char, next_char = line:sub(col - 1, col - 1), line:sub(col, col)
+        local is_interpolation = key == '{' and prev_char == '$'
+        if next_char ~= key and not is_interpolation and in_string() then return key end
+        return MiniPairs[info.action](info.pair, info.neigh_pattern .. '[^%w]')
       end, { expr = true, replace_keycodes = false, desc = 'mini.pairs ' .. key })
     end
   end
@@ -243,7 +244,6 @@ do
       show_buffer_close_buttons = false,
       show_close_icon = false,
       name_formatter = function(buf)
-        -- Clean up jdtls decompiled class URIs to show just the class name
         local full_name = vim.api.nvim_buf_get_name(buf.bufnr)
         if full_name:match '^jdt://' then
           local java_file = full_name:match '/([%w$]+%.java)'
@@ -348,7 +348,7 @@ do
         vim.api.nvim_create_autocmd('LspDetach', {
           group = vim.api.nvim_create_augroup('kickstart-lsp-detach', { clear = true }),
           callback = function(event2)
-            vim.lsp.buf.clear_references()
+            vim.lsp.util.buf_clear_references(event2.buf)
             vim.api.nvim_clear_autocmds { group = 'kickstart-lsp-highlight', buffer = event2.buf }
           end,
         })
@@ -378,9 +378,7 @@ do
           },
           workspace = {
             checkThirdParty = false,
-            -- NOTE: this is a lot slower and will cause issues when working on your own configuration.
-            --  See https://github.com/neovim/nvim-lspconfig/issues/3189
-            library = vim.tbl_extend('force', vim.api.nvim_get_runtime_file('', true), {
+            library = vim.list_extend(vim.api.nvim_get_runtime_file('', true), {
               '${3rd}/luv/library',
               '${3rd}/busted/library',
             }),
@@ -391,7 +389,6 @@ do
 
     kotlin_lsp = {},
 
-    -- Typst LSP
     tinymist = {
       root_markers = { 'typst.toml', '.git' },
     },
@@ -401,17 +398,16 @@ do
     gh 'neovim/nvim-lspconfig',
     gh 'mason-org/mason.nvim',
     gh 'WhoIsSethDaniel/mason-tool-installer.nvim',
-    gh 'mfussenegger/nvim-jdtls', -- Java LSP (configured via ftplugin/java.lua)
+    gh 'mfussenegger/nvim-jdtls',
   }
 
-  -- Automatically install LSPs and related tools to stdpath for Neovim
   require('mason').setup {}
 
   require('mason-tool-installer').setup {
     ensure_installed = {
       'lua-language-server',
-      'kotlin-lsp',
-      'jdtls', -- Java language server (configured by nvim-jdtls, not lspconfig)
+      { 'kotlin-lsp', auto_update = true },
+      'jdtls',
       'stylua',
       'ktlint',
       'markdownlint-cli2',
