@@ -194,6 +194,8 @@ do
       { '<leader>s', group = '[S]earch', mode = { 'n', 'v' } },
       { '<leader>t', group = '[T]oggle' },
       { '<leader>h', group = 'Git [H]unk', mode = { 'n', 'v' } },
+      { '<leader>b', group = '[B]uffer' },
+      { '<leader>d', group = '[D]ebug' },
       { 'gr', group = 'LSP Actions', mode = { 'n' } },
     },
   }
@@ -297,6 +299,15 @@ do
       separator_style = 'thin',
       always_show_bufferline = true,
       show_tab_indicators = true,
+      name_formatter = function(buf)
+        -- Clean up jdtls decompiled class URIs to show just the class name
+        local full_name = vim.api.nvim_buf_get_name(buf.bufnr)
+        if full_name:match '^jdt://' then
+          local java_file = full_name:match '/([%w$]+%.java)'
+          if java_file then return java_file end
+        end
+        return buf.name
+      end,
     },
   }
 end
@@ -450,15 +461,12 @@ do
     },
 
     kotlin_lsp = {
-      cmd = { '/opt/homebrew/opt/kotlin-lsp/libexec/bin/intellij-server', '--stdio' },
-      filetypes = { 'kotlin' },
       root_markers = { 'build.gradle', 'build.gradle.kts', 'settings.gradle', 'settings.gradle.kts', 'pom.xml', '.git' },
     },
 
     -- Typst LSP
     tinymist = {
       root_markers = { 'typst.toml', '.git' },
-      single_file_support = true,
     },
   }
 
@@ -467,16 +475,20 @@ do
     gh 'mason-org/mason.nvim',
     gh 'mason-org/mason-lspconfig.nvim',
     gh 'WhoIsSethDaniel/mason-tool-installer.nvim',
+    gh 'mfussenegger/nvim-jdtls', -- Java LSP (configured via ftplugin/java.lua)
   }
 
   -- Automatically install LSPs and related tools to stdpath for Neovim
   require('mason').setup {}
 
-  local ensure_installed = vim.tbl_keys(servers or {})
+  -- tinymist is installed via Homebrew instead of Mason
+  local ensure_installed = vim.tbl_filter(function(name) return name ~= 'tinymist' end, vim.tbl_keys(servers))
   vim.list_extend(ensure_installed, {
+    'jdtls', -- Java language server (configured by nvim-jdtls, not lspconfig)
     'stylua',
+    'ktlint',
+    'markdownlint-cli2',
   })
-  ensure_installed = vim.tbl_filter(function(item) return item ~= 'tinymist' end, ensure_installed)
 
   require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
@@ -500,7 +512,7 @@ do
     formatters = {
       ktlint = {
         extra_args = {
-          "--editorconfig=" .. vim.fn.expand("~/.config/ktlint/.editorconfig"),
+          '--editorconfig=' .. vim.fn.expand '~/.config/ktlint/.editorconfig',
         },
       },
     },
