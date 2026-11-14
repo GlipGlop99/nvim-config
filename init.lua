@@ -77,11 +77,6 @@ do
 
   vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' })
 
-  vim.keymap.set('n', '<left>', '<cmd>echo "Use h to move!!"<CR>')
-  vim.keymap.set('n', '<right>', '<cmd>echo "Use l to move!!"<CR>')
-  vim.keymap.set('n', '<up>', '<cmd>echo "Use k to move!!"<CR>')
-  vim.keymap.set('n', '<down>', '<cmd>echo "Use j to move!!"<CR>')
-
   vim.keymap.set('n', '<A-j>', '<cmd>m .+1<CR>==', { desc = 'Move line down' })
   vim.keymap.set('n', '<A-k>', '<cmd>m .-2<CR>==', { desc = 'Move line up' })
   vim.keymap.set('v', '<A-j>', ":m '>+1<CR>gv=gv", { desc = 'Move selection down' })
@@ -130,32 +125,14 @@ do
 end
 
 do
-  local function run_build(name, cmd, cwd)
-    local result = vim.system(cmd, { cwd = cwd }):wait()
-    if result.code ~= 0 then
-      local stderr = result.stderr or ''
-      local stdout = result.stdout or ''
-      local output = stderr ~= '' and stderr or stdout
-      if output == '' then output = 'No output from build command.' end
-      vim.notify(('Build failed for %s:\n%s'):format(name, output), vim.log.levels.ERROR)
-    end
-  end
-
   vim.api.nvim_create_autocmd('PackChanged', {
     callback = function(ev)
-      local name = ev.data.spec.name
       local kind = ev.data.kind
       if kind ~= 'install' and kind ~= 'update' then return end
 
-      if name == 'LuaSnip' then
-        if vim.fn.has 'win32' ~= 1 and vim.fn.executable 'make' == 1 then run_build(name, { 'make', 'install_jsregexp' }, ev.data.path) end
-        return
-      end
-
-      if name == 'nvim-treesitter' then
+      if ev.data.spec.name == 'nvim-treesitter' then
         if not ev.data.active then vim.cmd.packadd 'nvim-treesitter' end
         vim.cmd 'TSUpdate'
-        return
       end
     end,
   })
@@ -175,7 +152,6 @@ do
       { '<leader>t', group = '[T]oggle' },
       { '<leader>h', group = 'Git [H]unk', mode = { 'n', 'v' } },
       { '<leader>b', group = '[B]uffer' },
-      { '<leader>d', group = '[D]ebug' },
       { 'gr', group = 'LSP Actions' },
     },
   }
@@ -184,9 +160,6 @@ do
   ---@diagnostic disable-next-line: missing-fields
   require('catppuccin').setup { no_italic = true }
   vim.cmd.colorscheme 'catppuccin-mocha'
-
-  vim.pack.add { gh 'nvim-lua/plenary.nvim', gh 'folke/todo-comments.nvim' }
-  require('todo-comments').setup { signs = false }
 
   vim.pack.add { gh 'stevearc/oil.nvim' }
   require('oil').setup {}
@@ -207,6 +180,35 @@ do
   }
 
   require('mini.surround').setup()
+
+  require('mini.pairs').setup()
+
+  local function in_string()
+    local ok, parser = pcall(vim.treesitter.get_parser)
+    if not ok or not parser then return false end
+    parser:parse(true)
+    local node = vim.treesitter.get_node()
+    return node ~= nil and node:type():find 'string' ~= nil
+  end
+
+  for key, info in pairs(MiniPairs.config.mappings) do
+    if info and info.action ~= 'close' then
+      vim.keymap.set('i', key, function()
+        local next_char = vim.api.nvim_get_current_line():sub(vim.fn.col '.', vim.fn.col '.')
+        if next_char ~= key and in_string() then return key end
+        return MiniPairs[info.action](info.pair, info.neigh_pattern)
+      end, { expr = true, replace_keycodes = false, desc = 'mini.pairs ' .. key })
+    end
+  end
+
+  require('mini.hipatterns').setup {
+    highlighters = {
+      fixme = { pattern = '%f[%w]()FIXME()%f[%W]', group = 'MiniHipatternsFixme' },
+      hack = { pattern = '%f[%w]()HACK()%f[%W]', group = 'MiniHipatternsHack' },
+      todo = { pattern = '%f[%w]()TODO()%f[%W]', group = 'MiniHipatternsTodo' },
+      note = { pattern = '%f[%w]()NOTE()%f[%W]', group = 'MiniHipatternsNote' },
+    },
+  }
 
   vim.pack.add { gh 'nvim-lualine/lualine.nvim' }
   vim.pack.add { gh 'akinsho/bufferline.nvim' }
@@ -398,7 +400,6 @@ do
   vim.pack.add {
     gh 'neovim/nvim-lspconfig',
     gh 'mason-org/mason.nvim',
-    gh 'mason-org/mason-lspconfig.nvim',
     gh 'WhoIsSethDaniel/mason-tool-installer.nvim',
     gh 'mfussenegger/nvim-jdtls', -- Java LSP (configured via ftplugin/java.lua)
   }
@@ -406,16 +407,16 @@ do
   -- Automatically install LSPs and related tools to stdpath for Neovim
   require('mason').setup {}
 
-  -- tinymist is installed via Homebrew instead of Mason
-  local ensure_installed = vim.tbl_filter(function(name) return name ~= 'tinymist' end, vim.tbl_keys(servers))
-  vim.list_extend(ensure_installed, {
-    'jdtls', -- Java language server (configured by nvim-jdtls, not lspconfig)
-    'stylua',
-    'ktlint',
-    'markdownlint-cli2',
-  })
-
-  require('mason-tool-installer').setup { ensure_installed = ensure_installed }
+  require('mason-tool-installer').setup {
+    ensure_installed = {
+      'lua-language-server',
+      'kotlin-lsp',
+      'jdtls', -- Java language server (configured by nvim-jdtls, not lspconfig)
+      'stylua',
+      'ktlint',
+      'markdownlint-cli2',
+    },
+  }
 
   for name, server in pairs(servers) do
     vim.lsp.config(name, server)
@@ -447,9 +448,6 @@ do
 end
 
 do
-  vim.pack.add { { src = gh 'L3MON4D3/LuaSnip', version = vim.version.range '2.*' } }
-  require('luasnip').setup {}
-
   vim.pack.add { { src = gh 'saghen/blink.cmp', version = vim.version.range '1.*' } }
   require('blink.cmp').setup {
     completion = {
@@ -458,7 +456,6 @@ do
     sources = {
       default = { 'lsp', 'path', 'snippets' },
     },
-    snippets = { preset = 'luasnip' },
     signature = { enabled = true },
   }
 end
@@ -533,9 +530,7 @@ do
 end
 
 do
-  require 'plugins.debug'
   require 'plugins.indent_line'
   require 'plugins.lint'
-  require 'plugins.autopairs'
   require 'plugins.gitsigns'
 end
