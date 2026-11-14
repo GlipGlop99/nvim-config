@@ -4,8 +4,6 @@ do
   vim.g.mapleader = ' '
   vim.g.maplocalleader = ' '
 
-  vim.g.have_nerd_font = true
-
   vim.o.number = true
   vim.o.relativenumber = true
 
@@ -14,17 +12,7 @@ do
   vim.o.showmode = false
 
   vim.o.clipboard = 'unnamedplus'
-  vim.g.clipboard = {
-    name = 'OSC 52',
-    copy = {
-      ['+'] = require('vim.ui.clipboard.osc52').copy '+',
-      ['*'] = require('vim.ui.clipboard.osc52').copy '*',
-    },
-    paste = {
-      ['+'] = require('vim.ui.clipboard.osc52').paste '+',
-      ['*'] = require('vim.ui.clipboard.osc52').paste '*',
-    },
-  }
+  vim.g.clipboard = 'osc52'
 
   vim.o.breakindent = true
 
@@ -58,19 +46,12 @@ do
   vim.api.nvim_create_autocmd('FocusLost', {
     command = 'silent! wall',
   })
-
-  vim.filetype.add {
-    extension = {
-      typ = 'typst',
-    },
-  }
 end
 
 do
   vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 
   vim.diagnostic.config {
-    update_in_insert = false,
     severity_sort = true,
     float = {
       border = 'rounded',
@@ -116,8 +97,8 @@ do
   vim.keymap.set('n', '<C-S-j>', '<C-w>J', { desc = 'Move window to the lower' })
   vim.keymap.set('n', '<C-S-k>', '<C-w>K', { desc = 'Move window to the upper' })
 
-  vim.keymap.set('n', '<Tab>', '<cmd>bnext<CR>', { desc = 'Next buffer' })
-  vim.keymap.set('n', '<S-Tab>', '<cmd>bprev<CR>', { desc = 'Previous buffer' })
+  vim.keymap.set('n', '<Tab>', '<cmd>BufferLineCycleNext<CR>', { desc = 'Next buffer' })
+  vim.keymap.set('n', '<S-Tab>', '<cmd>BufferLineCyclePrev<CR>', { desc = 'Previous buffer' })
   vim.keymap.set('n', '<leader>x', '<cmd>bd<CR>', { desc = 'Close buffer' })
   vim.keymap.set('n', '<leader>bl', '<cmd>BufferLineMoveNext<CR>', { desc = '[B]uffer move right' })
   vim.keymap.set('n', '<leader>bh', '<cmd>BufferLineMovePrev<CR>', { desc = '[B]uffer move left' })
@@ -189,28 +170,19 @@ do
   vim.pack.add { gh 'folke/which-key.nvim' }
   require('which-key').setup {
     delay = 0,
-    icons = { mappings = vim.g.have_nerd_font },
     spec = {
       { '<leader>s', group = '[S]earch', mode = { 'n', 'v' } },
       { '<leader>t', group = '[T]oggle' },
       { '<leader>h', group = 'Git [H]unk', mode = { 'n', 'v' } },
       { '<leader>b', group = '[B]uffer' },
       { '<leader>d', group = '[D]ebug' },
-      { 'gr', group = 'LSP Actions', mode = { 'n' } },
+      { 'gr', group = 'LSP Actions' },
     },
   }
 
   vim.pack.add { gh 'catppuccin/nvim' }
   ---@diagnostic disable-next-line: missing-fields
-  require('catppuccin').setup {
-    no_italic = true,
-    integrations = {
-      gitsigns = true,
-      mason = true,
-      mini = { enabled = true },
-      which_key = true,
-    },
-  }
+  require('catppuccin').setup { no_italic = true }
 
   local function get_catppuccin_flavor()
     if os.getenv 'TMUX' then
@@ -221,11 +193,7 @@ do
     return 'mocha'
   end
 
-  local function apply_catppuccin_flavor()
-    local flavor = get_catppuccin_flavor()
-    vim.o.background = (flavor == 'latte') and 'light' or 'dark'
-    vim.cmd.colorscheme('catppuccin-' .. flavor)
-  end
+  local function apply_catppuccin_flavor() vim.cmd.colorscheme('catppuccin-' .. get_catppuccin_flavor()) end
 
   apply_catppuccin_flavor()
 
@@ -234,7 +202,7 @@ do
     callback = apply_catppuccin_flavor,
   })
 
-  vim.pack.add { gh 'folke/todo-comments.nvim' }
+  vim.pack.add { gh 'nvim-lua/plenary.nvim', gh 'folke/todo-comments.nvim' }
   require('todo-comments').setup { signs = false }
 
   vim.pack.add { gh 'stevearc/oil.nvim' }
@@ -243,10 +211,8 @@ do
 
   vim.pack.add { gh 'nvim-mini/mini.nvim' }
 
-  if vim.g.have_nerd_font then
-    require('mini.icons').setup()
-    MiniIcons.mock_nvim_web_devicons()
-  end
+  require('mini.icons').setup()
+  MiniIcons.mock_nvim_web_devicons()
 
   require('mini.ai').setup {
     -- NOTE: Avoid conflicts with the built-in incremental selection mappings on Neovim>=0.12 (see `:help treesitter-incremental-selection`)
@@ -264,13 +230,10 @@ do
 
   require('lualine').setup {
     options = {
-      theme = 'auto',
-      icons_enabled = vim.g.have_nerd_font,
       section_separators = '',
       component_separators = '|',
     },
     sections = {
-      lualine_a = { 'mode' },
       lualine_b = { 'branch' },
       lualine_c = { { 'filename', path = 2 } },
       lualine_x = { 'diagnostics', 'filetype' },
@@ -285,20 +248,15 @@ do
           end
         end,
       },
-      lualine_z = { 'location' },
     },
   }
 
   require('bufferline').setup {
     options = {
-      mode = 'buffers',
       max_name_length = 30,
       diagnostics = 'nvim_lsp',
       show_buffer_close_buttons = false,
       show_close_icon = false,
-      separator_style = 'thin',
-      always_show_bufferline = true,
-      show_tab_indicators = true,
       name_formatter = function(buf)
         -- Clean up jdtls decompiled class URIs to show just the class name
         local full_name = vim.api.nvim_buf_get_name(buf.bufnr)
@@ -316,13 +274,7 @@ do
   vim.pack.add { gh 'ibhagwan/fzf-lua' }
 
   local fzf = require 'fzf-lua'
-  fzf.setup {
-    'default',
-    file_ignore_patterns = { 'build/', 'node_modules/', '.git/' },
-    winopts = {
-      preview = { default = 'builtin' },
-    },
-  }
+  fzf.setup { file_ignore_patterns = { 'build/', 'node_modules/' } }
   fzf.register_ui_select()
 
   vim.keymap.set('n', '<leader>sh', fzf.helptags, { desc = '[S]earch [H]elp' })
@@ -391,8 +343,6 @@ do
         vim.keymap.set(mode, keys, func, { buffer = event.buf, desc = 'LSP: ' .. desc })
       end
 
-      map('grn', vim.lsp.buf.rename, '[R]e[n]ame')
-      map('gra', vim.lsp.buf.code_action, '[G]oto Code [A]ction', { 'n', 'x' })
       map('grD', vim.lsp.buf.declaration, '[G]oto [D]eclaration')
 
       local client = vim.lsp.get_client_by_id(event.data.client_id)
@@ -452,17 +402,9 @@ do
           },
         })
       end,
-      ---@type lspconfig.settings.lua_ls
-      settings = {
-        Lua = {
-          format = { enable = false }, -- Disable formatting (formatting is done by stylua)
-        },
-      },
     },
 
-    kotlin_lsp = {
-      root_markers = { 'build.gradle', 'build.gradle.kts', 'settings.gradle', 'settings.gradle.kts', 'pom.xml', '.git' },
-    },
+    kotlin_lsp = {},
 
     -- Typst LSP
     tinymist = {
@@ -527,12 +469,6 @@ do
 
   vim.pack.add { { src = gh 'saghen/blink.cmp', version = vim.version.range '1.*' } }
   require('blink.cmp').setup {
-    keymap = {
-      preset = 'default',
-    },
-    appearance = {
-      nerd_font_variant = 'mono',
-    },
     completion = {
       documentation = { auto_show = true, auto_show_delay_ms = 500 },
     },
@@ -540,7 +476,6 @@ do
       default = { 'lsp', 'path', 'snippets' },
     },
     snippets = { preset = 'luasnip' },
-    fuzzy = { implementation = 'prefer_rust_with_warning' },
     signature = { enabled = true },
   }
 end
@@ -560,7 +495,7 @@ do
 
     local has_indent_query = vim.treesitter.query.get(language, 'indents') ~= nil
 
-    if has_indent_query then vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()" end
+    if has_indent_query then vim.bo[buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()" end
   end
 
   local available_parsers = require('nvim-treesitter').get_available()
@@ -589,7 +524,6 @@ do
       selection_modes = {
         ['@function.outer'] = 'V',
       },
-      include_surrounding_whitespace = false,
     },
   }
 

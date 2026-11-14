@@ -29,24 +29,7 @@ require('mason-nvim-dap').setup {
   ensure_installed = { 'delve' },
 }
 
----@diagnostic disable-next-line: missing-fields
-dapui.setup {
-  icons = { expanded = '▾', collapsed = '▸', current_frame = '*' },
-  ---@diagnostic disable-next-line: missing-fields
-  controls = {
-    icons = {
-      pause = '⏸',
-      play = '▶',
-      step_into = '⏎',
-      step_over = '⏭',
-      step_out = '⏮',
-      step_back = 'b',
-      run_last = '▶▶',
-      terminate = '⏹',
-      disconnect = '⏏',
-    },
-  },
-}
+dapui.setup()
 
 dap.listeners.after.event_initialized['dapui_config'] = dapui.open
 dap.listeners.before.event_terminated['dapui_config'] = dapui.close
