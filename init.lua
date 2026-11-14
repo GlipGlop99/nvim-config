@@ -183,24 +183,7 @@ do
   vim.pack.add { gh 'catppuccin/nvim' }
   ---@diagnostic disable-next-line: missing-fields
   require('catppuccin').setup { no_italic = true }
-
-  local function get_catppuccin_flavor()
-    if os.getenv 'TMUX' then
-      local out = vim.fn.system 'tmux show -gqv @catppuccin_flavor'
-      local f = vim.trim(out)
-      if f ~= '' then return f end
-    end
-    return 'mocha'
-  end
-
-  local function apply_catppuccin_flavor() vim.cmd.colorscheme('catppuccin-' .. get_catppuccin_flavor()) end
-
-  apply_catppuccin_flavor()
-
-  vim.api.nvim_create_autocmd('Signal', {
-    pattern = 'SIGUSR1',
-    callback = apply_catppuccin_flavor,
-  })
+  vim.cmd.colorscheme 'catppuccin-mocha'
 
   vim.pack.add { gh 'nvim-lua/plenary.nvim', gh 'folke/todo-comments.nvim' }
   require('todo-comments').setup { signs = false }
