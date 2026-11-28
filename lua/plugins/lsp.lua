@@ -69,8 +69,6 @@ vim.api.nvim_create_autocmd('LspAttach', {
 local servers = {
   lua_ls = {
     on_init = function(client)
-      client.server_capabilities.documentFormattingProvider = false
-
       if client.workspace_folders then
         local path = client.workspace_folders[1].name
         if path ~= vim.fn.stdpath 'config' and (vim.uv.fs_stat(path .. '/.luarc.json') or vim.uv.fs_stat(path .. '/.luarc.jsonc')) then return end
@@ -83,10 +81,7 @@ local servers = {
         },
         workspace = {
           checkThirdParty = false,
-          library = vim.list_extend(vim.api.nvim_get_runtime_file('', true), {
-            '${3rd}/luv/library',
-            '${3rd}/busted/library',
-          }),
+          library = vim.list_extend(vim.api.nvim_get_runtime_file('', true), { '${3rd}/luv/library' }),
         },
       })
     end,

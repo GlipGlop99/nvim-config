@@ -8,10 +8,11 @@ local cmd = {
   vim.fn.stdpath 'cache' .. '/jdtls/workspace/' .. vim.fn.fnamemodify(root_dir, ':t'),
 }
 
-if vim.fn.executable '/usr/libexec/java_home' == 1 then
+if vim.g.jdtls_java_home == nil and vim.fn.executable '/usr/libexec/java_home' == 1 then
   local result = vim.system({ '/usr/libexec/java_home', '-v', '25' }):wait()
-  if result.code == 0 then table.insert(cmd, 2, '--java-executable=' .. vim.trim(result.stdout) .. '/bin/java') end
+  vim.g.jdtls_java_home = result.code == 0 and vim.trim(result.stdout) or ''
 end
+if vim.g.jdtls_java_home and vim.g.jdtls_java_home ~= '' then table.insert(cmd, 2, '--java-executable=' .. vim.g.jdtls_java_home .. '/bin/java') end
 
 require('jdtls').start_or_attach {
   cmd = cmd,

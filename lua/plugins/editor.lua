@@ -1,7 +1,6 @@
 vim.pack.add {
   'https://github.com/NMAC427/guess-indent.nvim',
   'https://github.com/stevearc/oil.nvim',
-  'https://github.com/nvim-mini/mini.nvim',
   'https://github.com/lukas-reineke/indent-blankline.nvim',
 }
 
